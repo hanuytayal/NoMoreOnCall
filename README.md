@@ -47,7 +47,21 @@ A comprehensive error analysis and debugging system that helps developers quickl
    REPO_PATH=.
    ```
 
-## Usage
+## Quick Demo
+Run the demo script to see the system in action:
+```sh
+python demo.py
+```
+
+The demo will:
+1. Start the notification API
+2. Analyze two example errors:
+   - Database timeout error (ERR_123)
+   - Authentication error (ERR_456)
+3. Generate code fixes
+4. Show the results in a clear format
+
+## Manual Usage
 
 ### 1. Start the Notification API
 ```sh

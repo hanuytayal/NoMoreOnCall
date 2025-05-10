@@ -1,3 +1,7 @@
+# Environment variables
+.env
+.env.*
+
 # Python
 __pycache__/
 *.py[cod]
@@ -21,9 +25,9 @@ wheels/
 *.egg
 
 # Virtual Environment
-.venv/
 venv/
 ENV/
+env/
 
 # IDE
 .idea/
@@ -33,6 +37,7 @@ ENV/
 
 # Logs
 *.log
+logs/
 
 # Local development
 # Note: .env is intentionally NOT ignored to allow sharing configuration

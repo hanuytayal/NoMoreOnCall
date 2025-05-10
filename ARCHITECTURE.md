@@ -1,117 +1,57 @@
 # NoMoreOnCall Architecture
 
 ## Overview
-NoMoreOnCall is a comprehensive error analysis and debugging system that helps developers quickly identify and fix application errors. The system consists of three main components:
+NoMoreOnCall is an automated error analysis and code suggestion system. It helps developers quickly identify, analyze, and fix errors in their applications by combining error tracing, code context analysis, and automated code fix suggestions.
 
-1. **Debug Analyzer**: Analyzes errors and generates detailed reports
-2. **Notification API**: Receives and processes analysis notifications
-3. **Code Fixer**: Suggests code changes based on error analysis
-
-## System Components
+## Components
 
 ### 1. Debug Analyzer (`debug_analyzer_v2.py`)
-The core component that analyzes errors and generates detailed reports.
+- Fetches error details (mock or real API)
+- Analyzes code context and blame for error lines
+- Uses LLM or rules to generate root cause and fix suggestions
+- Outputs a structured JSON issue file
+- Sends notifications to the integrated API
 
-#### Key Classes
-- `ErrorDetails`: Stores error information
-  - `error_id`: Unique identifier for the error
-  - `type`: Error type (e.g., DatabaseError, AuthenticationError)
-  - `message`: Error message
-  - `stack_trace`: List of stack trace lines
-  - Additional metadata (timestamp, request_id, etc.)
-
-- `CodeAnalysis`: Contains code analysis results
-  - `file_path`: Path to the analyzed file
-  - `error_lines`: List of line numbers with errors
-  - `context_lines`: Dictionary of line numbers to code content
-  - `blame_info`: Git blame information for error lines
-
-- `LLMAnalysis`: Stores analysis results
-  - `root_cause`: Identified root cause of the error
-  - `code_level_explanation`: Detailed explanation
-  - `suggested_fixes`: List of suggested fixes
-  - `prevention_measures`: List of prevention measures
-
-- `GitCommit`: Tracks git commit information
-  - `hash`: Commit hash
-  - `author`: Commit author
-  - `date`: Commit date
-  - `message`: Commit message
-  - `files_changed`: List of changed files
-
-#### Main Methods
-- `analyze_error(error_id)`: Main entry point
-- `_fetch_error_details(error_id)`: Gets error details
-- `_analyze_code(error_details)`: Analyzes related code
-- `_analyze_with_llm(error_details, code_analysis)`: Gets LLM analysis
-- `_get_git_commits(code_analysis)`: Gets git commit info
-- `_create_issue_file(...)`: Generates JSON report
-
-### 2. Notification API (`notification_api.py`)
-A FastAPI-based service that receives and processes analysis notifications.
-
-#### Endpoints
-- `POST /notify`: Receives analysis notifications
-  - Input: Error ID, status, issue file, summary
-  - Output: Acknowledgment response
-
-#### Features
-- Asynchronous request handling
-- JSON request/response format
-- Logging of notifications
+### 2. Notification API (Integrated in `demo.py`)
+- Receives notifications about analyzed errors
+- Logs and acknowledges notifications
+- Runs as part of the demo process (no separate server needed)
 
 ### 3. Code Fixer (`code_fixer.py`)
-Suggests code changes based on error analysis.
+- Reads the issue JSON file
+- Suggests code changes for a wide range of error types
+- Prints suggested code changes and explanations
 
-#### Features
-- Reads JSON analysis files
-- Suggests specific code changes
-- Generates PR descriptions
-- Provides detailed explanations
+## System Flow
 
-## Data Flow
-```
-[Error Occurs]
-     ↓
-[Debug Analyzer]
-     ↓
-[Error Details] → [Code Analysis] → [LLM Analysis]
-     ↓
-[Issue File (JSON)]
-     ↓
-[Notification API]
-     ↓
-[Code Fixer]
-     ↓
-[Suggested Fixes]
+```mermaid
+flowchart TD
+    A[Error Occurs] --> B[Debug Analyzer]
+    B --> C[Analyze Code Context & Blame]
+    C --> D[LLM/Rule-based Root Cause & Fix]
+    D --> E[Generate Issue JSON]
+    E --> F[Notification API]
+    E --> G[Code Fixer]
+    G --> H[Suggested Code Changes]
 ```
 
-## File Structure
-```
-/NoMoreOnCall
-├── debug_analyzer_v2.py    # Main analyzer component
-├── notification_api.py     # Notification service
-├── code_fixer.py          # Code fix suggestions
-├── requirements.txt       # Python dependencies
-├── README.md             # Project overview
-├── ARCHITECTURE.md       # This file
-└── SYSTEM.md             # System documentation
-```
+## Step-by-Step Example
+1. **Error Occurs**: An error (e.g., database timeout) is detected.
+2. **Debug Analyzer**: Run `python debug_analyzer_v2.py ERR_123` to analyze the error.
+3. **Code Context & Blame**: The analyzer finds relevant code, context lines, and blame info.
+4. **Root Cause & Fix**: The analyzer (using LLM or rules) determines the root cause and suggests fixes.
+5. **Issue JSON**: The results are saved as `issue_ERR_123.json`.
+6. **Notification**: The analyzer sends a notification to the integrated API (handled in-process by the demo).
+7. **Code Fixer**: Run `python code_fixer.py issue_ERR_123.json` to get code change suggestions.
+8. **Suggested Fixes**: The system prints out the original and improved code for each error line.
 
-## Environment Variables
-- `DEBUG_API_BASE_URL`: Base URL for the debug API
-- `DEBUG_API_KEY`: API key for authentication
-- `REPO_PATH`: Path to the code repository
+## Supported Error Types
+- DatabaseError, AuthenticationError, ConnectionError, TimeoutError, ValidationError, ResourceNotFoundError, PermissionError, RateLimitError, MemoryError, ConcurrencyError, ConfigurationError, SecurityError, NetworkError, FileSystemError, SerializationError, and generic errors.
 
-## Dependencies
-- FastAPI: Web framework for the notification API
-- Python-dotenv: Environment variable management
-- Requests: HTTP client for API calls
-- Uvicorn: ASGI server for the notification API
+## Extending the System
+- Add new error types and fix logic in `code_fixer.py`.
+- Add new mock error scenarios in the analyzer for testing.
 
-## Future Enhancements
-1. Real API integration for error details
-2. Actual code analysis using git blame
-3. LLM integration for intelligent analysis
-4. Web interface for viewing analysis results
-5. Integration with issue tracking systems 
+---
+
+For more details, see the README or the code comments in each file. 

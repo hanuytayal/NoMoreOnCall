@@ -1,0 +1,94 @@
+{
+  "error_id": "ERR_123",
+  "timestamp": "2025-05-10T12:57:19.473956",
+  "error_details": {
+    "error_id": "ERR_123",
+    "type": "DatabaseError",
+    "timestamp": "2024-02-20T10:30:00Z",
+    "message": "Database connection timeout",
+    "request_id": "req_123",
+    "user_id": "user_456",
+    "endpoint": "/api/v1/users",
+    "stack_trace": [
+      "app/database.py:45: connect()",
+      "app/models.py:23: get_user()",
+      "app/views.py:12: user_view()"
+    ]
+  },
+  "code_analysis": [
+    {
+      "file_path": "app/database.py",
+      "error_lines": [
+        45
+      ],
+      "context_lines": {
+        "43": "def connect():",
+        "44": "    try:",
+        "45": "        db = Database(timeout=5)  # Error line",
+        "46": "        return db.connect()",
+        "47": "    except Exception as e:"
+      },
+      "blame_info": {
+        "45": {
+          "author": "John Doe",
+          "commit": "abc123",
+          "date": "2024-02-19"
+        }
+      }
+    },
+    {
+      "file_path": "app/models.py",
+      "error_lines": [
+        23
+      ],
+      "context_lines": {
+        "21": "def get_user(user_id):",
+        "22": "    try:",
+        "23": "        return db.query(f'SELECT * FROM users WHERE id = {user_id}')",
+        "24": "    except Exception as e:",
+        "25": "        raise DatabaseError(str(e))"
+      },
+      "blame_info": {
+        "23": {
+          "author": "Jane Smith",
+          "commit": "def456",
+          "date": "2024-02-18"
+        }
+      }
+    }
+  ],
+  "llm_analysis": {
+    "root_cause": "Insufficient timeout value for database connection",
+    "code_level_explanation": "The database connection is timing out because the timeout value of 5 seconds is too low for the current load. The error occurs in database.py when trying to establish a connection.",
+    "suggested_fixes": [
+      "Increase database connection timeout to 30 seconds",
+      "Implement connection pooling",
+      "Add retry mechanism with exponential backoff"
+    ],
+    "prevention_measures": [
+      "Implement circuit breakers for database operations",
+      "Add monitoring for database connection metrics",
+      "Set up alerts for connection timeouts"
+    ]
+  },
+  "git_commits": [
+    {
+      "hash": "abc123",
+      "author": "John Doe",
+      "date": "2024-02-19",
+      "message": "Update app/database.py",
+      "files_changed": [
+        "app/database.py"
+      ]
+    },
+    {
+      "hash": "def456",
+      "author": "Jane Smith",
+      "date": "2024-02-18",
+      "message": "Update app/models.py",
+      "files_changed": [
+        "app/models.py"
+      ]
+    }
+  ]
+}

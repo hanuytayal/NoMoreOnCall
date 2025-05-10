@@ -7,6 +7,10 @@ A comprehensive error analysis and debugging system that helps developers quickl
 - Provides code-level context and blame information
 - Suggests fixes and prevention measures
 - Generates code change suggestions for a wide range of error types
+- Integrated notification API for error alerting and automation
+
+## Architecture
+See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed technical overview and system flow.
 
 ## Components
 
@@ -15,6 +19,7 @@ A comprehensive error analysis and debugging system that helps developers quickl
 - Analyzes related code files with context and blame information
 - Provides root cause analysis and suggested fixes
 - Generates structured JSON reports
+- Sends notifications to the integrated API
 
 ### 2. Notification API (Integrated)
 - Receives notifications about analyzed errors (now integrated into the demo script)
@@ -52,11 +57,9 @@ python demo.py
 
 The demo will:
 1. Start the notification API (in-process)
-2. Analyze two example errors:
-   - Database timeout error (ERR_123)
-   - Authentication error (ERR_456)
-3. Generate code fixes for both errors
-4. Show the results in a clear format
+2. Analyze a database timeout error (ERR_123)
+3. Generate code fixes for the error
+4. Show the results in a clear, sectioned format
 
 ## Supported Error Types & Fixes
 The code fixer currently supports automatic suggestions for:
@@ -92,8 +95,6 @@ python code_fixer.py issue_ERR_123.json
 ## Testing
 The system includes mock data for testing:
 - `ERR_123`: Database connection timeout error
-- `ERR_456`: Authentication token validation error
-- `ERR_789`: Memory error (large list allocation)
 
 You can add your own issue files to test other error types.
 

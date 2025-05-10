@@ -74,10 +74,8 @@ def run_demo():
         run_command(["python", "debug_analyzer_v2.py", "ERR_123"])
         
         # Show the generated issue file
-        print("\nGenerated Issue File:")
         with open("issue_ERR_123.json", "r") as f:
             issue_data = json.load(f)
-            print_json(issue_data)
         
         # Break down the issue file into distinct sections
         print_section("Error Details")

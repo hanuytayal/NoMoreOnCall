@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 import re
 import itertools
+import git  # GitPython for git operations
+import requests  # For GitHub API
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -249,14 +252,86 @@ except ConnectionError as e:
             return code.replace('except Exception as e:', 'except Exception as e:\n    logger.error(f"Error: {str(e)}")\n    raise')
         return code
     
+    def apply_code_changes(self, changes: List[CodeChange], branch_name: str = None) -> str:
+        """Apply code changes to files, create a new branch, commit, and return the branch name."""
+        repo_path = os.getenv("REPO_PATH", ".")
+        repo = git.Repo(repo_path)
+        if branch_name is None:
+            branch_name = f"fix/{self.issue_data['error_id']}"
+        # Create new branch
+        if branch_name in repo.heads:
+            repo.git.checkout(branch_name)
+        else:
+            repo.git.checkout('-b', branch_name)
+        # Apply changes
+        for change in changes:
+            file_path = os.path.join(repo_path, change.file_path)
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+            # Replace the line at change.line_number (1-based)
+            idx = change.line_number - 1
+            if 0 <= idx < len(lines):
+                lines[idx] = change.new_code + '\n'
+            with open(file_path, 'w') as f:
+                f.writelines(lines)
+            repo.git.add(change.file_path)
+        # Commit
+        commit_msg = f"fix({self.issue_data['error_id']}): {changes[0].description}"
+        repo.git.commit('-m', commit_msg)
+        return branch_name
+
+    def create_patch(self, branch_name: str) -> str:
+        """Create a patch file for the branch and return its path."""
+        repo_path = os.getenv("REPO_PATH", ".")
+        repo = git.Repo(repo_path)
+        patch_path = f"patch_{branch_name.replace('/', '_')}.patch"
+        # Get the diff from the base branch (assume 'main')
+        base = 'main'
+        diff = repo.git.diff(f'{base}...{branch_name}', unified=3)
+        with open(patch_path, 'w') as f:
+            f.write(diff)
+        return patch_path
+
+    def create_pull_request(self, branch_name: str) -> str:
+        """Create a pull request on GitHub using the API. Returns the PR URL."""
+        github_token = os.getenv("GITHUB_TOKEN")
+        github_repo = os.getenv("GITHUB_REPO")  # e.g. 'username/repo'
+        if not github_token or not github_repo:
+            logger.warning("GITHUB_TOKEN or GITHUB_REPO not set. Skipping PR creation.")
+            return None
+        api_url = f"https://api.github.com/repos/{github_repo}/pulls"
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github+json"
+        }
+        data = {
+            "title": f"[NoMoreOnCall] Fix for {self.issue_data['error_id']}",
+            "head": branch_name,
+            "base": "main",
+            "body": f"Automated fix for {self.issue_data['error_id']}.\n\n{self.issue_data['llm_analysis']['suggested_fixes'][0]}"
+        }
+        response = requests.post(api_url, headers=headers, json=data)
+        if response.status_code == 201:
+            pr_url = response.json().get('html_url')
+            logger.info(f"Pull request created: {pr_url}")
+            return pr_url
+        else:
+            logger.error(f"Failed to create pull request: {response.text}")
+            return None
+
+    def push_branch(self, branch_name: str):
+        """Push the branch to the remote repository."""
+        repo_path = os.getenv("REPO_PATH", ".")
+        repo = git.Repo(repo_path)
+        origin = repo.remote(name='origin')
+        origin.push(branch_name)
+
     def run(self):
-        """Run the code fixer and print suggestions."""
+        """Run the code fixer, print suggestions, apply changes, create patch, and open PR."""
         try:
             suggestions = self.suggest_code_changes()
-            
             print("\nSuggested Code Changes:")
             print("=" * 80)
-            
             for change in suggestions:
                 print(f"\nFile: {change.file_path}")
                 print(f"Line: {change.line_number}")
@@ -267,7 +342,16 @@ except ConnectionError as e:
                 print("\nSuggested Change:")
                 print(f"  {change.new_code}")
                 print("-" * 80)
-            
+            # --- New: Apply changes, create patch, push, and PR ---
+            branch_name = self.apply_code_changes(suggestions)
+            patch_path = self.create_patch(branch_name)
+            print(f"\nPatch file created: {patch_path}")
+            self.push_branch(branch_name)
+            pr_url = self.create_pull_request(branch_name)
+            if pr_url:
+                print(f"Pull request created: {pr_url}")
+            else:
+                print("Pull request could not be created. Check logs for details.")
         except Exception as e:
             logger.error(f"Error generating code changes: {e}")
             raise
